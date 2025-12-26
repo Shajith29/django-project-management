@@ -1,3 +1,13 @@
 #Python
 __pycache__
 *.pyc
+
+#Virtual Environments
+env/
+
+#Django
+db.sqlite3
+*.log
+
+#Vscode
+.vscode/
