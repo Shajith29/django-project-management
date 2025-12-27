@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Managment App</title>
+</head>
+<body>
+    {% if user.is_authenticated %}
+        Logged is as : {{ user.username }}
+        <a href="{% url 'logout' %}">Logout</a>
+    {% else %}
+        <a href="{% url 'login' %}">Login</a>
+    {% endif %}
+
+    {% block content %}
+    {% endblock %}
+</body>
+</html>

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content%}
+<h2>Your Projects</h2>
+<ul>
+    {% for project in projects %}
+        <li>
+            {{project.name}}
+            {% if user == project.owner %}
+                <form action="{% url 'delete_project' project.pk %}" method="post">
+                    {% csrf_token%}
+                    <button>Delete</button>
+                </form>
+            {% endif %}
+        </li>
+    {% empty %}
+        <p>No Projects to Display</p>
+    {% endfor %}
+</ul>
+
+{% endblock %}
