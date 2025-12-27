@@ -181,6 +181,25 @@ class TestProjectOwnership(TestCase):
         ).exists())
         self.assertEqual(response.status_code,403)
 
+    def test_cannot_transfer_to_non_member(self):
+        url = reverse('transfer_project_ownership',args=[self.project.pk,self.other.pk])
+
+        self.client.login(username="owner",password="pass123")
+
+        response = self.client.post(url)
+
+        self.project.refresh_from_db()
+
+        self.assertEqual(self.project.owner,self.owner)
+        self.assertEqual(response.status_code,403)
+
+    def test_anonymous_cannot_transfer(self):
+        response = self.client.post(self.transfer_url)
+        self.project.refresh_from_db()
+
+        self.assertEqual(self.project.owner,self.owner)
+        self.assertEqual(response.status_code,302)
+
         
 
 
