@@ -3,6 +3,10 @@ from . import views
 
 
 urlpatterns =[
+
+    #list project
+
+    path("",views.list_projects,name = "list_project"),
     #Delete Project
     path('<int:project_id>/delete',views.delete_project,name='delete_project'),
 

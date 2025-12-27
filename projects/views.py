@@ -6,9 +6,25 @@ from tasks.models import Task
 from django.contrib.auth.models import User
 from .permissions import can_transfer_ownership, is_project_owner,is_project_member,can_edit_taks
 from django.core.exceptions import PermissionDenied
+from django.db.models import Q
 
 
 # Create your views here.
+
+
+@login_required 
+def list_projects(request):
+    projects = Project.objects.filter(
+        Q(owner = request.user) |
+        Q(members__pk = request.user.pk)
+    ).distinct()
+
+    context = {
+        "projects": projects
+    }
+
+    return render(request,"project_list.html",context)
+
 
 @login_required
 def delete_project(request,project_id):
