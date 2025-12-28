@@ -7,9 +7,25 @@ from django.contrib.auth.models import User
 from .permissions import can_transfer_ownership, is_project_owner,is_project_member,can_edit_taks
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
+from .forms import ProjectForm
 
 
 # Create your views here.
+
+@login_required
+def create_project(request):
+    if request.method == "POST":
+        form = ProjectForm(request.POST)
+
+        if form.is_valid:
+            project = form.save(commit=False)
+            project.owner = request.user
+            project.save()
+            return redirect("list_project")
+    else:
+        form = ProjectForm()
+
+    return render(request,"create_project.html",{"form": form})
 
 
 @login_required 
@@ -19,8 +35,21 @@ def list_projects(request):
         Q(members__pk = request.user.pk)
     ).distinct()
 
+    project_data = []
+
+    for project in projects:
+        can_create_task = (
+            project.owner == request.user or 
+            project.members.filter(pk=request.user.pk).exists()
+        )
+
+        project_data.append({
+            "project" : project,
+            "can_create_task": can_create_task
+        })
+
     context = {
-        "projects": projects
+        "project_data": project_data
     }
 
     return render(request,"project_list.html",context)

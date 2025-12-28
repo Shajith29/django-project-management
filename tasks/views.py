@@ -6,29 +6,34 @@ from django.contrib.auth.models import User
 
 from projects.models import Project,ProjectMembership
 from projects.permissions import can_edit_taks, is_project_member,can_toggle_task,can_assign_task,can_transfer_ownership
+from tasks.forms import TaskForm
 from tasks.models import Task
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponseBadRequest,HttpResponseForbidden
 # Create your views here.
 
 @login_required
 def create_task(request,project_id):
     project = get_object_or_404(Project,pk=project_id)
 
-    if not is_project_member(request.user,project):
-        raise PermissionDenied
+    if not (
+        project.owner == request.user or 
+        project.members.filter(pk=request.user.pk).exists()
+    ):
+        return HttpResponseForbidden
     
-    title = request.POST.get("title")
+    if request.method == "POST":
+        form = TaskForm(request.POST)
 
-    if not title:
-        raise ValueError("Task Title is Required")
-    
-    Task.objects.create(
-        title=title,
-        project=project
-    )
+        if form.is_valid:
+            task = form.save(commit=False)
+            task.project = project
+            task.save()
+            return redirect("list_project")
 
-    return redirect("/")
+    else:
+        form = TaskForm()
 
+    return render(request,"create_task.html",{"form": form,"project": project})
 
 @login_required
 def edit_task(request,task_id):

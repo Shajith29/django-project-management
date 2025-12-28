@@ -2,15 +2,20 @@
 
 {% block content%}
 <h2>Your Projects</h2>
+<a href="{% url 'create_project' %}">Create New  Project</a>
 <ul>
-    {% for project in projects %}
+    {% for item in project_data %}
         <li>
-            {{project.name}}
-            {% if user == project.owner %}
-                <form action="{% url 'delete_project' project.pk %}" method="post">
+            {{item.project.name}}
+            {% if user == item.project.owner %}
+                <form action="{% url 'delete_project' item.project.pk %}" method="post">
                     {% csrf_token%}
                     <button>Delete</button>
                 </form>
+                
+                {% if item.can_create_task %}
+                    <a href = "{% url 'create_task' item.project.pk %}">Create Task</a>
+                {% endif %}
             {% endif %}
         </li>
     {% empty %}

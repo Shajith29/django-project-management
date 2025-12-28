@@ -4,6 +4,10 @@ from . import views
 
 urlpatterns =[
 
+    #Create Project
+
+    path("create/",views.create_project,name="create_project"),
+
     #list project
 
     path("",views.list_projects,name = "list_project"),
