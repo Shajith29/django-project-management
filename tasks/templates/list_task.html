@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2>Task for {{project.name}}</h2>
+
+    <a href="{% url 'create_task' project.pk %}">Create Task</a>
+
+    {% for task in tasks %}
+        <li>
+            {{task.title}}
+
+            {% if request.user == project.owner or task.assigned_to == request.user%}
+                <a href="{% url 'edit_task' task.pk %}">Edit Task</a>
+            {% endif %}
+            {% if task.assigned_to %}
+                Assinged To : {{task.assigned_to.username}}
+            {% endif %}
+
+            Status: 
+            {% if task.completed %}
+                Completed
+            {% else  %}
+                Pending
+            {% endif %}
+
+            {% if request.user == project.owner %}
+                <a href="{% url 'assign_task' task.pk %}">Assign Task</a>
+            {% endif %}
+        </li>
+    {% empty %}
+        <p>No Tasks to List</p>
+    {% endfor %}
+
+    <a href="{% url 'list_projects' %}">Back to Projects</a>
+
+{% endblock %}

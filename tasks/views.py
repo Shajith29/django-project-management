@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 
 from projects.models import Project,ProjectMembership
 from projects.permissions import can_edit_taks, is_project_member,can_toggle_task,can_assign_task,can_transfer_ownership
-from tasks.forms import TaskForm
+from tasks.forms import TaskForm,AssignTaskForm
 from tasks.models import Task
 from django.http import HttpResponseBadRequest,HttpResponseForbidden
 # Create your views here.
@@ -35,22 +35,56 @@ def create_task(request,project_id):
 
     return render(request,"create_task.html",{"form": form,"project": project})
 
+
+@login_required
+
+def list_tasks(request,project_id):
+    project = get_object_or_404(Project,pk=project_id)
+
+    if not (request.user == project.owner or project.members.filter(pk=request.user.pk).exists()):
+        return HttpResponseForbidden
+    
+    tasks = Task.objects.filter(project=project)
+
+    context = {
+        "tasks" : tasks,
+        "project": project
+    }
+
+    return render(request,"list_task.html",context)
+
+
 @login_required
 def edit_task(request,task_id):
     task = get_object_or_404(Task,pk=task_id)
 
-    if not can_edit_taks(request.user,task):
-        raise PermissionDenied
-    
-    new_title = request.POST.get("title")
+    project = task.project
 
-    if not new_title:
-        raise ValueError("Title is Required")
+    if not (
+        request.user == project.owner or project.members.filter(pk=request.user.pk).exists()
+    ):
+        return HttpResponseForbidden
     
-    task.title = new_title
-    task.save()
+    if request.method == "POST":
+        form = TaskForm(request.POST,instance=task)
 
-    return redirect('/')
+        if form.is_valid:
+            form.save()
+            return redirect('list_tasks',project_id=project.pk)
+
+    else:
+        form = TaskForm(instance=task)
+
+    return render(
+        request,
+        "edit_task.html",
+        {
+            "form" : form,
+            "task":task,
+            "project":project
+        }
+
+        )
 
 @login_required
 def complete_task(request,task_id):
@@ -72,17 +106,32 @@ def complete_task(request,task_id):
 
 
 @login_required
-def assign_task(request,task_id,user_id):
+def assign_task(request,task_id):
     task = get_object_or_404(Task,pk=task_id)
-    user =  get_object_or_404(User,pk=user_id)
+    project = task.project
 
-    if not can_assign_task(request.user,task,user):
-        raise PermissionDenied
+    if request.user != project.owner:
+        return HttpResponseForbidden
     
-    task.assigned_to = user
-    task.save()
+    if request.method == "POST":
+        form = AssignTaskForm(request.POST,instance=Task,project_id = project.pk)
 
-    return redirect("/")
+        if form.is_valid:
+            form.save()
+            redirect('list_tasks',project_id=project.pk)
+
+    else:
+        form = AssignTaskForm(instance=Task)
+
+    return render(
+        request,
+        "assign_task.html",
+        {
+            "form": form,
+            "task":task,
+            "project":project
+        }
+    )
 
 
     

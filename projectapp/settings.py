@@ -113,10 +113,12 @@ USE_I18N = True
 USE_TZ = True
 
 
+LOGIN_REDIRECT_URL = '/projects/'
+LOGOUT_REDIRECT_URL = '/accounts/login/'
+
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
 
-LOGIN_REDIRECT_URL = '/projects/'
-LOGOUT_REDIRECT_URL = '/accounts/login/'

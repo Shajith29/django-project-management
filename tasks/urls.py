@@ -6,6 +6,9 @@ urlpatterns = [
 
     path('projects/<int:project_id>/tasks/create/',views.create_task,name="create_task"),
 
+    #list Task
+    path('project/<int:project_id>/tasks/',views.list_tasks,name = "list_tasks"),
+
     #Edit Task
 
     path('<int:task_id>/edit/',views.edit_task,name="edit_task"),
@@ -16,7 +19,7 @@ urlpatterns = [
 
     #Assign task
 
-    path('<int:task_id>/assign/<int:user_id>',views.assign_task,name = "assign_task")
+    path('<int:task_id>/assign/>',views.assign_task,name = "assign_task")
 
 
 ]
