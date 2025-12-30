@@ -19,7 +19,12 @@ urlpatterns = [
 
     #Assign task
 
-    path('<int:task_id>/assign/>',views.assign_task,name = "assign_task")
+    path('<int:task_id>/assign/',views.assign_task,name = "assign_task"),
+
+    #Delete Task
+    path("<int:task_id>/delete",views.delete_task,name= "delete_task")
+
+    
 
 
 ]

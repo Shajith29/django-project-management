@@ -10,7 +10,7 @@ urlpatterns =[
 
     #list project
 
-    path("",views.list_projects,name = "list_projects"),
+    path("",views.list_projects,name= "list_projects"),
     #Delete Project
     path('<int:project_id>/delete',views.delete_project,name='delete_project'),
 

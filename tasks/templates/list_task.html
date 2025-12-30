@@ -26,6 +26,16 @@
             {% if request.user == project.owner %}
                 <a href="{% url 'assign_task' task.pk %}">Assign Task</a>
             {% endif %}
+
+            
+            {% if request.user == project.owner %}
+
+                <form method="post" action="{% url 'delete_task' task.pk %}">
+                    {% csrf_token %}
+                    <button type="submit">Delete Task</button>
+                </form>
+             
+            {% endif %}
         </li>
     {% empty %}
         <p>No Tasks to List</p>

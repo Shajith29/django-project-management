@@ -21,7 +21,7 @@ def create_project(request):
             project = form.save(commit=False)
             project.owner = request.user
             project.save()
-            return redirect("list_project")
+            return redirect("list_projects")
     else:
         form = ProjectForm()
 

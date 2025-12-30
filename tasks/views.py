@@ -24,11 +24,11 @@ def create_task(request,project_id):
     if request.method == "POST":
         form = TaskForm(request.POST)
 
-        if form.is_valid:
+        if form.is_valid()  :
             task = form.save(commit=False)
             task.project = project
             task.save()
-            return redirect("list_project")
+            return redirect("list_projects")
 
     else:
         form = TaskForm()
@@ -108,20 +108,21 @@ def complete_task(request,task_id):
 @login_required
 def assign_task(request,task_id):
     task = get_object_or_404(Task,pk=task_id)
+  
+
     project = task.project
 
+
     if request.user != project.owner:
-        return HttpResponseForbidden
+        return HttpResponseForbidden()
     
     if request.method == "POST":
-        form = AssignTaskForm(request.POST,instance=Task,project_id = project.pk)
-
-        if form.is_valid:
+        form = AssignTaskForm(request.POST,instance=task,project=project)
+        if form.is_valid():
             form.save()
-            redirect('list_tasks',project_id=project.pk)
-
+            return redirect('list_tasks',project_id=project.pk)
     else:
-        form = AssignTaskForm(instance=Task)
+        form = AssignTaskForm(instance=task,project=project)
 
     return render(
         request,
@@ -134,5 +135,18 @@ def assign_task(request,task_id):
     )
 
 
+@login_required
+def delete_task(request,task_id):
+    task = get_object_or_404(Task,pk=task_id)
+    print(task)
+
+    project = task.project
+
+    if not request.user == project.owner:
+        return HttpResponseForbidden()
     
+    if request.method == "POST":
+        task.delete()
+        
+    return redirect("list_tasks",project_id=project.pk)
 

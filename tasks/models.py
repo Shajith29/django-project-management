@@ -10,7 +10,7 @@ class Task(models.Model):
     title = models.CharField(max_length=200)
     project = models.ForeignKey(
         Project,
-        on_delete=models.CASCADE,
+        on_delete=models    .CASCADE,
     )
 
     is_completed = models.BooleanField(default=False)
@@ -35,6 +35,8 @@ class Task(models.Model):
         blank=True
     )
 
+    created_at = models.DateTimeField(auto_now_add=True)
+
     class Meta:
         constraints = [
             models.CheckConstraint(
@@ -47,7 +49,7 @@ class Task(models.Model):
             ),
         ]
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    
 
   
 
