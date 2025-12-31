@@ -5,11 +5,30 @@
 
     <a href="{% url 'create_task' project.pk %}">Create Task</a>
 
+
+    <h3>Filter Tasks</h3>
+
+    <a href="?status=all" {% if status == "all"  %} style="font-weight: bold;" {% endif %}>
+        All ({{ total_count }})
+    </a> | 
+
+      <a href="?status=pending" {% if status == "pending"  %} style="font-weight: bold;" {% endif %}>
+        Pending ({{pending_count}})
+    </a> | 
+
+      <a href="?status=completed" {% if status == "completed"  %} style="font-weight: bold;" {% endif %}>
+        Completed ({{completed_count}})
+    </a> | 
+
+
+
+    
+
     {% for task in tasks %}
         <li>
             {{task.title}}
 
-            {% if request.user == project.owner or task.assigned_to == request.user%}
+            {% if not task.is_completed and  user == project.owner or task.assigned_to == user %}
                 <a href="{% url 'edit_task' task.pk %}">Edit Task</a>
             {% endif %}
             {% if task.assigned_to %}
@@ -17,24 +36,36 @@
             {% endif %}
 
             Status: 
-            {% if task.completed %}
+            {% if task.is_completed %}
                 Completed
             {% else  %}
                 Pending
             {% endif %}
 
-            {% if request.user == project.owner %}
+            {% if request.user == project.owner and not task.is_completed %}
                 <a href="{% url 'assign_task' task.pk %}">Assign Task</a>
             {% endif %}
 
             
             {% if request.user == project.owner %}
-
                 <form method="post" action="{% url 'delete_task' task.pk %}">
                     {% csrf_token %}
                     <button type="submit">Delete Task</button>
                 </form>
-             
+            {% endif %}
+
+            {% if not task.is_completed%}
+                {% if user == project.owner or task.assigned_to == user%}
+                    <form action="{% url 'complete_task' task.id %}" method="post" onsubmit="return confirm('Are you sure you want to mark this task as completed')">
+                        {% csrf_token %}
+                        <button type="submit">Mark as Completed</button>
+                    </form>
+                {% endif %}
+            {% else %}
+                    <p>
+                        Task is Complted by {{task.completed_by.username}} at {{task.completed_at}}
+                    </p>
+
             {% endif %}
         </li>
     {% empty %}

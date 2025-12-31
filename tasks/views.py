@@ -44,11 +44,29 @@ def list_tasks(request,project_id):
     if not (request.user == project.owner or project.members.filter(pk=request.user.pk).exists()):
         return HttpResponseForbidden
     
-    tasks = Task.objects.filter(project=project)
+    status = request.GET.get("status","pending")
+    
+    base_qs = Task.objects.filter(project=project)
+
+    total_count = base_qs.count()
+ 
+    pending_count = base_qs.filter(is_completed=False).count()
+    completed_count = base_qs.filter(is_completed=True).count()
+
+    tasks = base_qs
+    
+    if status == "pending":
+        tasks = base_qs.filter(is_completed=False)
+    elif status == "completed":
+        tasks = base_qs.filter(is_completed=True)
 
     context = {
         "tasks" : tasks,
-        "project": project
+        "project": project,
+        "status":status,
+        "total_count":total_count,
+        "completed_count":completed_count,
+        "pending_count":pending_count
     }
 
     return render(request,"list_task.html",context)
@@ -89,6 +107,7 @@ def edit_task(request,task_id):
 @login_required
 def complete_task(request,task_id):
     task = get_object_or_404(Task,pk=task_id)
+    project = task.project
 
     if not can_toggle_task(request.user,task):
         raise PermissionDenied
@@ -102,7 +121,7 @@ def complete_task(request,task_id):
     task.completed_at = timezone.now()
     task.save()
 
-    return redirect("/")
+    return redirect("list_tasks",project_id=project.pk)
 
 
 @login_required
