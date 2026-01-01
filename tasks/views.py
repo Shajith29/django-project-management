@@ -9,6 +9,7 @@ from projects.permissions import can_edit_taks, is_project_member,can_toggle_tas
 from tasks.forms import TaskForm,AssignTaskForm
 from tasks.models import Task
 from django.http import HttpResponseBadRequest,HttpResponseForbidden
+from django.core.paginator import Paginator
 # Create your views here.
 
 @login_required
@@ -39,14 +40,23 @@ def create_task(request,project_id):
 @login_required
 
 def list_tasks(request,project_id):
+
     project = get_object_or_404(Project,pk=project_id)
 
     if not (request.user == project.owner or project.members.filter(pk=request.user.pk).exists()):
         return HttpResponseForbidden
     
     status = request.GET.get("status","pending")
+    order = request.GET.get("order","newest")
+
+    ordering = "-created_at"
+
+    if(order == 'oldest'):
+        ordering = "created_at"
+
+
     
-    base_qs = Task.objects.filter(project=project)
+    base_qs = Task.objects.filter(project=project).order_by(ordering)
 
     total_count = base_qs.count()
  
@@ -59,14 +69,25 @@ def list_tasks(request,project_id):
         tasks = base_qs.filter(is_completed=False)
     elif status == "completed":
         tasks = base_qs.filter(is_completed=True)
+    else:
+        tasks = base_qs
+    
+
+    paginator = Paginator(tasks,3)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+    
+
 
     context = {
-        "tasks" : tasks,
+        "tasks" : page_obj,
         "project": project,
         "status":status,
         "total_count":total_count,
         "completed_count":completed_count,
-        "pending_count":pending_count
+        "pending_count":pending_count,
+        "page_obj": page_obj,
+        "order":order,
     }
 
     return render(request,"list_task.html",context)
