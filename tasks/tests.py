@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
 from projects.models import Project, ProjectMembership
@@ -6,6 +6,8 @@ from tasks.models import Task
 
 from django.contrib.auth.models import User
 from django.utils import timezone
+
+from .services import (get_ordering,get_tasks_preferences,filter_tasks)
 
 # Create your tests here.
 
@@ -129,6 +131,7 @@ class EditTaskTest(TestCase):
             user=self.other_member,
             project=self.project
         )
+
 
         self.task = Task.objects.create(
             title = "New Task",
@@ -335,14 +338,14 @@ class TestAssignTask(TestCase):
             assigned_to = None
         )
 
-        self.assign_url = reverse('assign_task',args=[self.task.pk,self.member.pk])
+        self.assign_url = reverse('assign_task',args=[self.task.pk])
 
-
-    
     def test_owner_can_assign_task(self):
         self.client.login(username="owner",password="pass123")
 
-        response = self.client.post(self.assign_url)
+        response = self.client.post(self.assign_url,{
+            "assigned_to" : self.member.pk
+        })
 
         self.task.refresh_from_db()
 
@@ -351,17 +354,19 @@ class TestAssignTask(TestCase):
 
     def test_owner_cannot_assign_non_member(self):
 
-        url = reverse("assign_task",args=[self.task.pk,self.other.pk])
+        url = reverse("assign_task",args=[self.task.pk])
 
         self.client.login(username="owner",password="pass123")
-        response = self.client.post(url)
+        response = self.client.post(url,{
+            "assigned_to" : self.other.pk
+        })
 
         self.task.refresh_from_db()
 
         self.assertIsNone(self.task.assigned_to)
-        self.assertEqual(response.status_code,403)
+        self.assertEqual(response.status_code,200)
 
-    def member_cannot_assign_task(self):
+    def test_member_cannot_assign_task(self):
         self.client.login(username="member",password="pass123")
 
         response = self.client.post(self.assign_url)
@@ -371,12 +376,79 @@ class TestAssignTask(TestCase):
         self.assertIsNone(self.task.assigned_to)
         self.assertEqual(response.status_code,403)
 
-    def anonymous_user_cannot_assign_task(self):
+    def test_anonymous_user_cannot_assign_task(self):
         response = self.client.post(self.assign_url)
 
         self.task.refresh_from_db()
         self.assertIsNone(self.task.assigned_to)
         self.assertEqual(response.status_code,302)
+
+
+class GetOrderingTest(TestCase):
+
+    def test_newest_returns_desc(self):
+        self.assertEqual(get_ordering('newest'),'-created_at')
+
+    def test_oldest_return_asc(self):
+        self.assertEqual(get_ordering("oldest"),"created_at")
+
+    def test_invalid_return_desc(self):
+        self.assertEqual(get_ordering("invalid"),"-created_at")
+
+class GetTaskPreferenceTest(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    
+    def test_defaults_when_no_session_no_query(self):
+        request = self.factory.get("/tasks")
+
+        request.session = {}
+
+        status,order = get_tasks_preferences(request)
+
+        self.assertEqual(status,"pending")
+        self.assertEqual(order,"newest")
+
+    def test_url_params_override_default(self):
+        request = self.factory.get("tasks/?status=completed&order=oldest")
+
+        request.session = {}
+
+        status,order = get_tasks_preferences(request)
+
+        self.assertEqual(status,"completed")
+        self.assertEqual(order,"oldest")
+        self.assertEqual(request.session["tasks_status"],"completed")
+        self.assertEqual(request.session["tasks_order"],"oldest")
+
+    
+    def test_when_url_is_missing(self):
+        request = self.factory.get('/tasks')
+
+        request.session = {
+            "tasks_status": "completed",
+            "tasks_order":"oldest"
+        }
+
+        status,order = get_tasks_preferences(request)
+
+        self.assertEqual(status,"completed")
+        self.assertEqual(order,"oldest")
+
+    def test_invalid_url_values(self):
+        request = self.factory.get("/tasks/?status=wrong&order=vertical")
+
+        request.session = {
+            "status": "pending",
+            "order": "newest"
+        }
+
+        status,order = get_tasks_preferences(request)
+
+        self.assertEqual(status,"pending")
+        self.assertEqual(order,"newest")
+
 
     
 

@@ -10,6 +10,8 @@ from tasks.forms import TaskForm,AssignTaskForm
 from tasks.models import Task
 from django.http import HttpResponseBadRequest,HttpResponseForbidden
 from django.core.paginator import Paginator
+
+from .services import (get_ordering,filter_tasks,get_tasks_preferences)
 # Create your views here.
 
 @login_required
@@ -20,7 +22,7 @@ def create_task(request,project_id):
         project.owner == request.user or 
         project.members.filter(pk=request.user.pk).exists()
     ):
-        return HttpResponseForbidden
+        return HttpResponseForbidden()
     
     if request.method == "POST":
         form = TaskForm(request.POST)
@@ -46,33 +48,18 @@ def list_tasks(request,project_id):
     if not (request.user == project.owner or project.members.filter(pk=request.user.pk).exists()):
         return HttpResponseForbidden
     
-    status = request.GET.get("status","pending")
-    order = request.GET.get("order","newest")
+    status,order = get_tasks_preferences(request)
 
-    ordering = "-created_at"
-
-    if(order == 'oldest'):
-        ordering = "created_at"
-
-
+    ordering = get_ordering(order)
     
     base_qs = Task.objects.filter(project=project).order_by(ordering)
 
     total_count = base_qs.count()
- 
     pending_count = base_qs.filter(is_completed=False).count()
     completed_count = base_qs.filter(is_completed=True).count()
 
-    tasks = base_qs
+    tasks = filter_tasks(status,base_qs)
     
-    if status == "pending":
-        tasks = base_qs.filter(is_completed=False)
-    elif status == "completed":
-        tasks = base_qs.filter(is_completed=True)
-    else:
-        tasks = base_qs
-    
-
     paginator = Paginator(tasks,3)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
@@ -93,6 +80,7 @@ def list_tasks(request,project_id):
     return render(request,"list_task.html",context)
 
 
+
 @login_required
 def edit_task(request,task_id):
     task = get_object_or_404(Task,pk=task_id)
@@ -100,9 +88,9 @@ def edit_task(request,task_id):
     project = task.project
 
     if not (
-        request.user == project.owner or project.members.filter(pk=request.user.pk).exists()
+        request.user == project.owner or task.assigned_to == request.user
     ):
-        return HttpResponseForbidden
+        return HttpResponseForbidden()
     
     if request.method == "POST":
         form = TaskForm(request.POST,instance=task)
@@ -148,8 +136,6 @@ def complete_task(request,task_id):
 @login_required
 def assign_task(request,task_id):
     task = get_object_or_404(Task,pk=task_id)
-  
-
     project = task.project
 
 
