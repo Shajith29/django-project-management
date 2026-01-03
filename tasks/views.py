@@ -11,7 +11,7 @@ from tasks.models import Task
 from django.http import HttpResponseBadRequest,HttpResponseForbidden
 from django.core.paginator import Paginator
 
-from .services import (get_ordering,filter_tasks,get_tasks_preferences)
+from .services import (get_ordering,filter_tasks,get_tasks_preferences,search_tasks)
 # Create your views here.
 
 @login_required
@@ -51,6 +51,8 @@ def list_tasks(request,project_id):
     status,order = get_tasks_preferences(request)
 
     ordering = get_ordering(order)
+
+    search = request.GET.get("search","")
     
     base_qs = Task.objects.filter(project=project).order_by(ordering)
 
@@ -59,6 +61,7 @@ def list_tasks(request,project_id):
     completed_count = base_qs.filter(is_completed=True).count()
 
     tasks = filter_tasks(status,base_qs)
+    tasks = search_tasks(base_qs,search)
     
     paginator = Paginator(tasks,3)
     page_number = request.GET.get("page")
@@ -75,6 +78,7 @@ def list_tasks(request,project_id):
         "pending_count":pending_count,
         "page_obj": page_obj,
         "order":order,
+        "search":search
     }
 
     return render(request,"list_task.html",context)

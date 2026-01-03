@@ -7,7 +7,9 @@ from tasks.models import Task
 from django.contrib.auth.models import User
 from django.utils import timezone
 
-from .services import (get_ordering,get_tasks_preferences,filter_tasks)
+from .services import (get_ordering,get_tasks_preferences,filter_tasks,search_tasks)
+
+from tasks.models import Task
 
 # Create your tests here.
 
@@ -449,6 +451,115 @@ class GetTaskPreferenceTest(TestCase):
         self.assertEqual(status,"pending")
         self.assertEqual(order,"newest")
 
+
+
+class FilterTaskTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="user",
+            password="pass123"
+        )
+
+        self.project = Project.objects.create(
+            name="Test Project",
+            owner=self.user
+        )
+
+        self.pending_task = Task.objects.create(
+            title="Test Task",
+            project=self.project,
+            is_completed=False
+        )
+
+        self.completed_task = Task.objects.create(
+            title="Apple",
+            project=self.project,
+            assigned_to=self.user,
+            completed_by=self.user,
+            completed_at=timezone.now(),
+            is_completed=True
+        )
+
+
+        self.base_qs = Task.objects.filter(project=self.project)
+
+
+    def test_filter_pending(self):
+        qs = filter_tasks(self.base_qs,"pending")
+
+        self.assertEqual(qs.count(),1)
+        self.assertFalse(qs.first().is_completed)
+
+    def test_filter_completed(self):
+        qs = filter_tasks(self.base_qs,"completed")
+
+        self.assertEqual(qs.count(),1)
+        self.assertTrue(qs.first().is_completed)
+
+
+
+class SearchTaskTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="user",
+            password="pass123"
+        )
+
+        self.project = Project.objects.create(
+            name="Test Project",
+            owner=self.user
+        )
+
+        self.task1 = Task.objects.create(
+            title="Fix login bug",
+            project=self.project
+        )
+
+        self.task2 = Task.objects.create(
+            title="Add Search Feature",
+            project=self.project
+        )
+
+        self.base_qs = Task.objects.filter(project=self.project)
+
+    
+
+    def test_search_returns_matching_tasks(self):
+        qs = search_tasks(self.base_qs,"Fix")
+
+        self.assertEqual(qs.count(),1)
+        self.assertEqual(qs.first(),self.task1)
+
+    def test_search_returns_match_tasks_case_insensitive(self):
+        qs = search_tasks(self.base_qs,"SEARCH")
+
+        self.assertEqual(qs.count(),1)
+        self.assertEqual(qs.first(),self.task2)
+
+
+    def test_empty_search_returns_all(self):
+        qs = search_tasks(self.base_qs,"")
+
+        self.assertEqual(qs.count(),2)
+      
+
+    def test_query_not_found_returns_nothing(self):
+        qs = search_tasks(self.base_qs,"Apple")
+
+        self.assertEqual(qs.count(),0)
+
+
+    def test_filtes_tasks_in_list_view(self):
+        self.client.login(username="user",password="pass123")
+
+        response = self.client.get(
+            reverse('list_tasks',args=[self.project.pk]),
+            {"search":"Fix Login Bug"}
+        )
+
+        self.assertEqual(response.status_code,200)
+        self.assertContains(response,"Fix Login Bug")
+        self.assertNotContains(response,"Add Search Feature")
 
     
 

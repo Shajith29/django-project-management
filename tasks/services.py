@@ -21,10 +21,18 @@ def get_ordering(status):
     return "created_at" if status == "oldest" else "-created_at"
 
 
-def filter_tasks(status,base_qs):
+def filter_tasks(base_qs,status):
     if status == "pending":
         return base_qs.filter(is_completed=False)
     elif status == "completed":
         return base_qs.filter(is_completed=True)
     else:
         return base_qs
+    
+
+def search_tasks(queryset,search_query):
+    if not search_query:
+        return queryset
+    
+    return queryset.filter(title__icontains=search_query)
+

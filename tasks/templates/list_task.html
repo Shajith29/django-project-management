@@ -24,6 +24,15 @@
     <h4>Sort Task By</h4>
     <a href="?status={{status}}&order=newest">Newest</a>
     <a href="?status={{status}}&order=oldest">Oldest</a>
+
+    <h4>Search Tasks</h4>
+    <form method="get">
+        <input type="text" name="search" value="{{ search }}" placeholder="Search Tasks"/>
+        <input type="hidden" name="status" value ="{{ status }}"/>
+        <input type="hidden" name="order" value ="{{ order }}"/>
+        
+        <button type="submit">Search</button>
+    </form>
     
     
 
@@ -79,12 +88,12 @@
 
     <div>
         {% if page_obj.has_previous %}
-            <a href="?status={{ status }}&order={{ order }}&page={{page_obj.previous_page_number}}">Previous</a>
+            <a href="?status={{ status }}&order={{ order }}&search={{ search }}&page={{page_obj.previous_page_number}}">Previous</a>
         {% endif %}
         <p>Page {{page_obj.number}} of {{page_obj.paginator.num_pages}}</p>
 
         {% if page_obj.has_next %}
-            <a href="?status={{ status }}&order={{ order  }}&page={{page_obj.next_page_number}}">Next</a>
+            <a href="?status={{ status }}&order={{ order  }}&search={{ search }}page={{page_obj.next_page_number}}">Next</a>
         {% endif %}
     </div>
 
