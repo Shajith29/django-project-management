@@ -1,3 +1,4 @@
+from django.db.models import Q
 
 def get_tasks_preferences(request):
     VALID_STATUS = ["all","completed","pending"]
@@ -34,5 +35,8 @@ def search_tasks(queryset,search_query):
     if not search_query:
         return queryset
     
-    return queryset.filter(title__icontains=search_query)
+    return queryset.filter(
+        Q(title__icontains=search_query) | 
+        Q(assigned_to__username__icontains=search_query)
+    )
 

@@ -505,6 +505,11 @@ class SearchTaskTests(TestCase):
             password="pass123"
         )
 
+        self.assingee = User.objects.create_user(
+            username="Alice",
+            password="pass123" 
+        )
+
         self.project = Project.objects.create(
             name="Test Project",
             owner=self.user
@@ -512,7 +517,8 @@ class SearchTaskTests(TestCase):
 
         self.task1 = Task.objects.create(
             title="Fix login bug",
-            project=self.project
+            project=self.project,
+            assigned_to=self.assingee
         )
 
         self.task2 = Task.objects.create(
@@ -560,6 +566,21 @@ class SearchTaskTests(TestCase):
         self.assertEqual(response.status_code,200)
         self.assertContains(response,"Fix Login Bug")
         self.assertNotContains(response,"Add Search Feature")
+
+    
+    def test_search_by_title(self):
+        qs = search_tasks(self.base_qs,"login")
+
+        self.assertEqual(qs.count(),1)
+        self.assertEqual(qs.first(),self.task1)
+
+    def test_search_by_assigned_user(self):
+        qs = search_tasks(self.base_qs,"Alice")
+
+        self.assertEqual(qs.count(),1)
+        self.assertEqual(qs.first(),self.task1)
+
+
 
     
 

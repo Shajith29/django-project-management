@@ -12,6 +12,9 @@ from django.http import HttpResponseBadRequest,HttpResponseForbidden
 from django.core.paginator import Paginator
 
 from .services import (get_ordering,filter_tasks,get_tasks_preferences,search_tasks)
+from django.views.generic import ListView
+
+
 # Create your views here.
 
 @login_required
@@ -37,6 +40,58 @@ def create_task(request,project_id):
         form = TaskForm()
 
     return render(request,"create_task.html",{"form": form,"project": project})
+
+
+
+
+class TaskListView(ListView):
+    model = Task
+    template_name = "list_task.html"
+    context_object_name = 'tasks'
+    paginate_by = 3
+
+    def dispatch(self,request,*args,**kwargs):
+        self.project = get_object_or_404(Project,pk=kwargs["project_id"])
+
+        if not (
+            request.user == self.project.owner  or self.project.members.filter(pk=request.user.pk)
+        ):
+            return HttpResponseForbidden()
+        
+        return super().dispatch(request,*args,**kwargs)
+    
+    def get_queryset(self):
+
+        status,order = get_tasks_preferences(self.request)
+        ordering = get_ordering(order)
+
+        search = self.request.GET.get("search","").strip()
+
+        qs = Task.objects.filter(project=self.project).order_by(ordering).select_related('assigned_to')
+
+        qs = filter_tasks(qs,status)
+        qs = search_tasks(qs,search)
+
+        return  qs
+    
+    def get_context_data(self,**kwargs):
+        context = super().get_context_data(**kwargs)
+
+        status,order = get_tasks_preferences(self.request)
+
+        base_qs = Task.objects.filter(project=self.project)
+
+        context.update({
+            "project" :self.project,
+            "status": status,
+            "order": order,
+            "search": self.request.GET.get("search","").strip(),
+            "total_count": base_qs.count(),
+            "completed_count": base_qs.filter(is_completed=True).count(),
+            "pending_count": base_qs.filter(is_completed=False).count(),
+        })
+
+        return context
 
 
 @login_required

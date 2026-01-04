@@ -7,7 +7,7 @@ urlpatterns = [
     path('projects/<int:project_id>/tasks/create/',views.create_task,name="create_task"),
 
     #list Task
-    path('project/<int:project_id>/tasks/',views.list_tasks,name = "list_tasks"),
+    path('project/<int:project_id>/tasks/',views.TaskListView.as_view(),name = "list_tasks"),
 
     #Edit Task
 

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load highlight %}
 
 {% block content %}
     <h2>Task for {{project.name}}</h2>
@@ -39,7 +40,7 @@
     {% for task in tasks %}
         <li>
             <br>
-            {{task.title}}
+            {{task.title | highlight:search}}
 
             {% if not task.is_completed and  user == project.owner or task.assigned_to == user %}
                 <a href="{% url 'edit_task' task.pk %}">Edit Task</a>
