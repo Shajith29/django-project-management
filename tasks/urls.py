@@ -7,7 +7,11 @@ urlpatterns = [
     path('projects/<int:project_id>/tasks/create/',views.create_task,name="create_task"),
 
     #list Task
+<<<<<<< HEAD
     path('project/<int:project_id>/tasks/',views.TaskListView.as_view(),name = "list_tasks"),
+=======
+    path('project/<int:project_id>/tasks/',views.TaskListView.as_view(),name = "list_task"),
+>>>>>>> templates
 
     #Edit Task
 

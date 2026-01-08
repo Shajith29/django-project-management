@@ -567,6 +567,7 @@ class SearchTaskTests(TestCase):
         self.assertContains(response,"Fix Login Bug")
         self.assertNotContains(response,"Add Search Feature")
 
+<<<<<<< HEAD
     
     def test_search_by_title(self):
         qs = search_tasks(self.base_qs,"login")
@@ -579,6 +580,124 @@ class SearchTaskTests(TestCase):
 
         self.assertEqual(qs.count(),1)
         self.assertEqual(qs.first(),self.task1)
+=======
+
+class TestTaskViewList(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            username="owner",
+            password="pass123"
+        )
+
+        self.member = User.objects.create_user(
+            username="member",
+            password="pass123"
+        )
+
+        self.stranger = User.objects.create_user(
+            username="stranger",
+            password="pass123"
+        )
+
+        self.project = Project.objects.create(
+            name="Test Project",
+            owner=self.owner
+        )
+
+        ProjectMembership.objects.create(
+            project=self.project,
+            user=self.member
+        )
+
+        self.task1 = Task.objects.create(
+            title="Pending Task",
+            project = self.project,
+            is_completed = False
+        )
+        
+        self.task2 = Task.objects.create(
+            title="Completed Task",
+            project = self.project,
+            is_completed=True,
+            completed_by=self.member,
+            completed_at=timezone.now()
+        )
+
+        self.url = reverse("list_task",args=[self.project.pk])
+
+
+
+    def test_strangers_cannot_list_task(self):
+        self.client.login(username="stranger",password="pass123")
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code,403)
+
+    
+    def test_owner_can_list_task(self):
+        self.client.login(username="owner",password="pass123")
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code,200)
+
+    
+    def test_members_can_list_task(self):
+        self.client.login(username="member",password="pass123")
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code,200)
+
+    def test_default_shows_only_pending(self):
+        self.client.login(username="member",password="pass123")
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response,"Pending Task")
+        self.assertNotContains(response,"Completed Task")
+
+    def test_completed_filter_shows_completed_tasks(self):
+        self.client.login(username="member",password="pass123")
+        
+        response = self.client.get(self.url,{"status": "completed"})
+
+        self.assertContains(response,"Completed Task")
+        self.assertNotContains(response,"Pending Task")
+
+
+    def test_search_filters_task(self):
+        self.client.login(username="member",password="pass123")
+
+        response = self.client.get(self.url,{
+            "search": "pending"
+        })
+
+        self.assertContains(response,"Pending Task")
+        self.assertNotContains(response,"Completed Task")
+
+    def test_pagination_limit_results(self):
+        self.client.login(username="member",password="pass123")
+        for i in range(5):
+            Task.objects.create(
+                title=f"Task: ${i}",
+                project=self.project
+            )
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(len(response.context["tasks"]),3)
+
+    def test_context_contains_count(self):
+        self.client.login(username="member",password="pass123")
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.context["total_count"],2)
+        self.assertEqual(response.context["completed_count"],1)
+        self.assertEqual(response.context["pending_count"],1)
+>>>>>>> templates
 
 
     
