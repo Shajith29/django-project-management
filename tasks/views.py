@@ -3,6 +3,7 @@ from django.shortcuts import render,get_object_or_404,redirect
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.models import User
+from django.views.generic import ListView
 
 from projects.models import Project,ProjectMembership
 from projects.permissions import can_edit_taks, is_project_member,can_toggle_task,can_assign_task,can_transfer_ownership
@@ -179,4 +180,64 @@ def delete_task(request,task_id):
         task.delete()
         
     return redirect("list_tasks",project_id=project.pk)
+
+
+
+
+class TaskListView(ListView):
+    model = Task
+    template_name = "list_task.html"
+    context_object_name = "tasks"
+    paginate_by = 3
+
+
+    def dispatch(self, request, *args, **kwargs):
+
+        self.project = get_object_or_404(Project,pk=kwargs["project_id"])
+
+        if not (
+            request.user == self.project.owner or self.project.members.filter(pk=request.user.pk).exists()
+        ):
+            return HttpResponseForbidden()
+        
+        return super().dispatch(request, *args, **kwargs)
+    
+
+    def get_queryset(self):
+
+        status,order = get_tasks_preferences(self.request)
+
+        ordering = get_ordering(order)
+
+        search = self.request.GET.get("search","").strip()
+
+        qs = (
+            Task.objects.filter(project=self.project).order_by(ordering).select_related("assigned_to")
+        )
+
+        qs = filter_tasks(qs,status)
+        qs = search_tasks(qs,search)
+
+
+        return qs
+    
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        status,order = get_tasks_preferences(self.request)
+
+        base_qs = Task.objects.filter(project=self.project)
+
+        context.update({
+            "project": self.project,
+            "status": status,
+            "order": order,
+            "search": self.request.GET.get("search","").strip(),
+            "total_count": base_qs.count(),
+            "completed_count": base_qs.filter(is_completed=True).count(),
+            "pending_count":base_qs.filter(is_completed=False).count(),
+        })
+
+        return context
 
