@@ -581,10 +581,6 @@ class SearchTaskTests(TestCase):
         self.assertEqual(qs.first(),self.task1)
 
 
-
-    
-
-
     
 
 
