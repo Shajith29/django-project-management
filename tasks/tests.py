@@ -567,7 +567,6 @@ class SearchTaskTests(TestCase):
         self.assertContains(response,"Fix Login Bug")
         self.assertNotContains(response,"Add Search Feature")
 
-<<<<<<< HEAD
     
     def test_search_by_title(self):
         qs = search_tasks(self.base_qs,"login")
@@ -580,7 +579,6 @@ class SearchTaskTests(TestCase):
 
         self.assertEqual(qs.count(),1)
         self.assertEqual(qs.first(),self.task1)
-=======
 
 class TestTaskViewList(TestCase):
     def setUp(self):
@@ -697,7 +695,7 @@ class TestTaskViewList(TestCase):
         self.assertEqual(response.context["total_count"],2)
         self.assertEqual(response.context["completed_count"],1)
         self.assertEqual(response.context["pending_count"],1)
->>>>>>> templates
+
 
 
     
