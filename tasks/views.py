@@ -3,7 +3,7 @@ from django.shortcuts import render,get_object_or_404,redirect
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.models import User
-from django.views.generic import ListView,UpdateView
+from django.views.generic import ListView,UpdateView,CreateView,DeleteView
 from django.urls import reverse
 
 from projects.models import Project,ProjectMembership
@@ -14,8 +14,6 @@ from django.http import HttpResponseBadRequest,HttpResponseForbidden
 from django.core.paginator import Paginator
 
 from .services import (get_ordering,filter_tasks,get_tasks_preferences,search_tasks)
-from django.views.generic import ListView
-
 
 # Create your views here.
 
@@ -43,12 +41,6 @@ def create_task(request,project_id):
 
     return render(request,"create_task.html",{"form": form,"project": project})
 
-
-<<<<<<< HEAD
-=======
-
-
->>>>>>> templates
 
 
 @login_required
@@ -82,6 +74,7 @@ def edit_task(request,task_id):
         }
 
         )
+
 
 @login_required
 def complete_task(request,task_id):
@@ -134,7 +127,6 @@ def assign_task(request,task_id):
 @login_required
 def delete_task(request,task_id):
     task = get_object_or_404(Task,pk=task_id)
-    print(task)
 
     project = task.project
 
@@ -232,3 +224,62 @@ class TaskUpdateView(UpdateView):
         context = super().get_context_data(**kwargs)
         context["project"] = self.project
         return context
+    
+
+class TaskCreateView(CreateView):
+    model = Task
+    form_class = TaskForm
+    template_name = 'create_task.html'
+
+
+    def dispatch(self, request, *args, **kwargs):
+
+        self.project = get_object_or_404(Project,pk=kwargs["project_id"])
+
+        if not (
+            request.user == self.project.owner or self.project.members.filter(pk=request.user.pk).exists()
+        ):
+            return HttpResponseForbidden()
+        
+
+        return super().dispatch(request, *args, **kwargs)
+    
+    def form_valid(self, form):
+        form.instance.project = self.project
+
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        return reverse("list_tasks",args=[self.project.pk])
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["project"] = self.project
+        return context
+
+
+class TaskDeleteView(DeleteView):
+    model = Task
+    template_name = 'delete_task.html'
+    context_object_name = 'tasks'
+
+
+    def dispatch(self, request, *args, **kwargs):
+        self.task = self.get_object()
+        self.project = self.task.project
+
+        if not (
+            request.user == self.project.owner or self.project.members.filter(pk=request.user.pk).exists()
+        ):
+            return HttpResponseForbidden()
+
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_success_url(self):
+        return reverse("list_tasks",args=[self.project.pk])
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['project'] = self.project
+
+        return context  

@@ -62,10 +62,7 @@
 
             
             {% if request.user == project.owner %}
-                <form method="post" action="{% url 'delete_task' task.pk %}" style="display: inline;">
-                    {% csrf_token %}
-                    <button type="submit">Delete Task</button>
-                </form>
+                <a href="{% url 'delete_task' task.pk %}">Delete Task</a>
             {% endif %}
 
             {% if not task.is_completed%}
