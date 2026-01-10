@@ -679,6 +679,116 @@ class TestTaskViewList(TestCase):
         self.assertEqual(response.context["pending_count"],1)
 
 
+class TaskUpdateViewTest(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            username="owner",
+            password="pass123"
+        )
+
+        self.member = User.objects.create_user(
+            username="member",
+            password="pass123"
+        )
+
+        self.other_member = User.objects.create_user(
+            username="other_member",
+            password="pass123"
+        )
+
+        self.stranger = User.objects.create_user(
+            username="stranger",
+            password="pass123"
+        )
+
+        self.project = Project.objects.create(
+            name="Test Project",
+            owner=self.owner
+        )
+
+        ProjectMembership.objects.create(
+            project=self.project,
+            user=self.member
+        )
+
+        ProjectMembership.objects.create(
+            project=self.project,
+            user=self.other_member
+        )
+
+        self.task = Task.objects.create(
+            title= "Test Task",
+            project=self.project
+        )
+
+        self.url = reverse("edit_task",args=[self.task.pk])
+
+
+    def test_stranger_cannot_edit_task(self):
+        self.client.login(username="stranger",password="pass123")
+
+        response = self.client.post(self.url,{
+            "title": "Changed title"
+        })
+
+        self.task.refresh_from_db()
+
+        self.assertEqual(response.status_code,403)
+        self.assertEqual(self.task.title,"Test Task")
+
+    
+    def test_owner_can_edit_task(self):
+        self.client.login(username="owner",password="pass123")
+        
+        response = self.client.post(self.url,{
+            "title": "Updated Title"
+        })
+
+        self.task.refresh_from_db()
+
+        self.assertEqual(self.task.title,"Updated Title")
+        self.assertEqual(response.status_code,302)
+
+
+    def test_member_can_edit_task(self):
+        self.client.login(username="member",password="pass123")
+
+        response = self.client.post(self.url,{
+            "title": "New Title"
+        })
+
+        self.task.refresh_from_db()
+
+        self.assertEqual(self.task.title,"New Title")
+        self.assertEqual(response.status_code,302)
+
+    def test_edit_task_page_loads_for_owner(self):
+        self.client.login(username="owner",password="pass123")
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code,200)
+        self.assertTemplateUsed(response,"edit_task.html")
+        self.assertIn("form",response.context)
+        self.assertEqual(response.context['task'],self.task)
+
+    def test_redirect_to_list_tasks_after_success(self):
+        self.client.login(username="owner",password="pass123")
+
+        response = self.client.post(self.url,{
+            "title": "New"
+        })
+
+        self.assertRedirects(
+            response,
+            reverse("list_tasks",args=[self.project.id])
+        )
+
+
+
+
+
+
     
 
 

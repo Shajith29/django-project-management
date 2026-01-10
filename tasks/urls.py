@@ -7,11 +7,11 @@ urlpatterns = [
     path('projects/<int:project_id>/tasks/create/',views.create_task,name="create_task"),
 
     #list Task
-    path('project/<int:project_id>/tasks/',views.TaskListView.as_view(),name = "list_task"),
+    path('project/<int:project_id>/tasks/',views.TaskListView.as_view(),name = "list_tasks"),
 
     #Edit Task
 
-    path('<int:task_id>/edit/',views.edit_task,name="edit_task"),
+    path('<int:pk>/edit/',views.TaskUpdateView.as_view(),name="edit_task"),
 
     #Toggle Task Completion
 

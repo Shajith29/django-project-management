@@ -3,7 +3,8 @@ from django.shortcuts import render,get_object_or_404,redirect
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.models import User
-from django.views.generic import ListView
+from django.views.generic import ListView,UpdateView
+from django.urls import reverse
 
 from projects.models import Project,ProjectMembership
 from projects.permissions import can_edit_taks, is_project_member,can_toggle_task,can_assign_task,can_transfer_ownership
@@ -40,49 +41,7 @@ def create_task(request,project_id):
     return render(request,"create_task.html",{"form": form,"project": project})
 
 
-@login_required
 
-def list_tasks(request,project_id):
-
-    project = get_object_or_404(Project,pk=project_id)
-
-    if not (request.user == project.owner or project.members.filter(pk=request.user.pk).exists()):
-        return HttpResponseForbidden
-    
-    status,order = get_tasks_preferences(request)
-
-    ordering = get_ordering(order)
-
-    search = request.GET.get("search","")
-    
-    base_qs = Task.objects.filter(project=project).order_by(ordering)
-
-    total_count = base_qs.count()
-    pending_count = base_qs.filter(is_completed=False).count()
-    completed_count = base_qs.filter(is_completed=True).count()
-
-    tasks = filter_tasks(status,base_qs)
-    tasks = search_tasks(base_qs,search)
-    
-    paginator = Paginator(tasks,3)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
-    
-
-
-    context = {
-        "tasks" : page_obj,
-        "project": project,
-        "status":status,
-        "total_count":total_count,
-        "completed_count":completed_count,
-        "pending_count":pending_count,
-        "page_obj": page_obj,
-        "order":order,
-        "search":search
-    }
-
-    return render(request,"list_task.html",context)
 
 
 
@@ -102,7 +61,7 @@ def edit_task(request,task_id):
 
         if form.is_valid():
             form.save()
-            return redirect('list_tasks',project_id=project.pk)
+            return redirect('list_task',project_id=project.pk)
 
     else:
         form = TaskForm(instance=task)
@@ -241,3 +200,29 @@ class TaskListView(ListView):
 
         return context
 
+
+class TaskUpdateView(UpdateView):
+    model = Task
+    form_class = TaskForm
+    template_name = "edit_task.html"
+    context_object_name = "task"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.task = self.get_object()
+        self.project = self.task.project
+
+        if not (
+            request.user == self.project.owner or self.project.members.filter(pk=request.user.pk).exists()
+        ):
+            return HttpResponseForbidden()
+
+        return super().dispatch(request, *args, **kwargs)
+    
+
+    def get_success_url(self):
+        return reverse("list_tasks",args=[self.project.pk])
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["project"] = self.project
+        return context
