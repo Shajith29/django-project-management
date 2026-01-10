@@ -785,8 +785,149 @@ class TaskUpdateViewTest(TestCase):
         )
 
 
+class TaskCreateViewTest(TestCase):
+
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            username="owner",
+            password="pass123"
+        )
+
+        self.member = User.objects.create_user(
+            username="member",
+            password="pass123"
+        )
+
+        self.stranger = User.objects.create_user(
+            username="stranger",
+            password="pass123"
+        )
+
+        self.project = Project.objects.create(
+            name="Test Project",
+            owner = self.owner
+        )
+
+        ProjectMembership.objects.create(
+            project = self.project,
+            user = self.member
+        )
+
+        self.url = reverse("create_task",args=[self.project.pk])
+
+    
+    def test_strangers_cannot_create_task(self):
+        self.client.login(username="stranger",password="pass123")
+
+        response = self.client.post(self.url,{
+            "title": "New Project"
+        })
+
+        self.assertEqual(response.status_code,403)
+        self.assertEqual(Task.objects.count(),0)
 
 
+    def test_owner_can_create_task(self):
+        self.client.login(username="owner",password="pass123")
+
+        response = self.client.post(self.url,{
+            "title": "Owner Task"
+        })
+
+        task = Task.objects.first()
+
+        self.assertEqual(Task.objects.count(),1)
+        self.assertEqual(task.project,self.project)
+        self.assertEqual(task.title,"Owner Task")
+        self.assertEqual(response.status_code,302)
+
+    def test_create_task_page_loads(self):
+        self.client.login(username="member",password="pass123")
+
+        response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code,200)
+        self.assertTemplateUsed(response,"create_task.html")
+        self.assertIn("form",response.context)
+
+    def test_redirects_to_list_task_after_create(self):
+        self.client.login(username="owner",password="pass123")
+
+        response = self.client.post(self.url,{
+            "title": "New Task"
+        })
+
+        self.assertEqual(response.status_code,302)
+        self.assertRedirects(response,reverse('list_tasks',args=[self.project.pk]))
+
+
+
+class TaskDeleteViewTest(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            username="owner",
+            password="pass123"
+        )
+
+        self.member = User.objects.create_user(
+            username="member",
+            password="pass123"
+        )
+
+        self.stranger = User.objects.create_user(
+            username="stranger",
+            password="pass123"
+        )
+
+        self.project = Project.objects.create(
+            name="Test Project",
+            owner=self.owner
+        )
+
+        ProjectMembership.objects.create(
+            user=self.member,
+            project=self.project
+        )
+
+        self.task = Task.objects.create(
+            title="Delete Task",
+            project = self.project
+        )
+
+        self.url = reverse("delete_task",args=[self.task.pk])
+
+
+    def test_stranger_cannot_delete_task(self):
+        self.client.login(username="stranger",password="pass123")
+        response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code,403)
+        self.assertTrue(Task.objects.filter(pk=self.task.pk).exists())
+
+
+    def test_owner_can_delete_task(self):
+        self.client.login(username="owner",password="pass123")
+
+        response = self.client.post(self.url)
+
+        self.assertFalse(Task.objects.filter(pk=self.task.pk).exists())
+        self.assertEqual(response.status_code,302)
+
+    def test_delete_confirmation_page_loads(self):
+        self.client.login(username="owner",password="pass123")
+
+        response = self.client.get(self.url)
+
+        self.assertTrue(response.status_code,200)
+        self.assertTemplateUsed(response,"delete_task.html")
+        self.assertEqual(response.context["tasks"],self.task)
+
+    def test_redirects_to_list_task(self):
+        self.client.login(username="owner",password="pass123")
+
+        response = self.client.post(self.url)
+
+        self.assertRedirects(response,reverse("list_tasks",args=[self.project.pk]))
 
 
     
