@@ -697,7 +697,6 @@ class TestTaskViewList(TestCase):
         self.assertEqual(response.context["pending_count"],1)
 
 
-
     
 
 

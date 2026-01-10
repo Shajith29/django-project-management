@@ -3,7 +3,8 @@ from django.shortcuts import render,get_object_or_404,redirect
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.models import User
-from django.views.generic import ListView
+from django.views.generic import ListView,UpdateView
+from django.urls import reverse
 
 from projects.models import Project,ProjectMembership
 from projects.permissions import can_edit_taks, is_project_member,can_toggle_task,can_assign_task,can_transfer_ownership
@@ -43,6 +44,11 @@ def create_task(request,project_id):
     return render(request,"create_task.html",{"form": form,"project": project})
 
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> templates
 
 
 @login_required
@@ -61,7 +67,7 @@ def edit_task(request,task_id):
 
         if form.is_valid():
             form.save()
-            return redirect('list_tasks',project_id=project.pk)
+            return redirect('list_task',project_id=project.pk)
 
     else:
         form = TaskForm(instance=task)
@@ -200,3 +206,29 @@ class TaskListView(ListView):
 
         return context
 
+
+class TaskUpdateView(UpdateView):
+    model = Task
+    form_class = TaskForm
+    template_name = "edit_task.html"
+    context_object_name = "task"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.task = self.get_object()
+        self.project = self.task.project
+
+        if not (
+            request.user == self.project.owner or self.project.members.filter(pk=request.user.pk).exists()
+        ):
+            return HttpResponseForbidden()
+
+        return super().dispatch(request, *args, **kwargs)
+    
+
+    def get_success_url(self):
+        return reverse("list_tasks",args=[self.project.pk])
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["project"] = self.project
+        return context
